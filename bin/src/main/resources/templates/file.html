@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body ng-app="myApp" ng-controller="myCtrl">
+    <h1>RestApi - File Manager</h1>
+    <label for="">Upload File</label>
+    <input type="file"  accept="image/*" multiple onchange="angular.element(this).scope().upload(this.files)">
+    <hr>
+    <label ng-repeat="filename in filenames" title="Double click to delete file">
+        <img ng-src="{{url(filename)}}" ng-dblclick="delete(filename)">
+       
+    </label>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+    <script>
+        var app = angular.module('myApp', [])
+        app.controller('myCtrl', function ($scope,$http) {
+            var url = `http://localhost:8080/rest/files/images`;
+            $scope.url = function(filename) {
+            return `${url}/${filename}`;
+            }
+            $scope.list = function() {
+
+            }
+            $scope.upload = function(files) {
+                
+            }
+            $scope.delete = function(filename) {
+
+            }
+            $scope.list();
+        })
+    </script>
+</body>
+</html>
