@@ -203,7 +203,7 @@ public class Student {
 ```
 ## 7. API upload and download files on server 
 ### 7.1. upload and download model
-![alt](https://)
+![alt](https://github.com/hieuhoang25/RestAPI/blob/master/img/Capture.PNG)
 - upload file (post)
 ==> đưa file lên server
 - download file (get)
