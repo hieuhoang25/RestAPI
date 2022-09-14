@@ -375,8 +375,130 @@ public class FileService {
 ==========
 # Một số quy tắc viết api
 ## 1. Dùng danh từ số nhiều
-| Resource      | GET | POST | PUT | DELETE|
-| ----------- | ----------- |
-| -      | READ       | CREATE | UPDATE | DELETE
-|/cars	|Returns a list of cars|	Create a new car|	|Bulk update of cars	|
-|/cars/711|	Returns a specific car|	Method not allowed (405)|	|Updates a specific car|	Deletes a specific car
+- Không nên dùng các động từ:
+```java
+GET /getAllCars 
+POST /createNewCar 
+PUT /updateAllRedCars
+DELETE /deleteAllRedCars
+```
+- Thay vào đó dùng các danh từ số nhiêu:
+```java
+GET /cars
+POST /cars
+PUT /cars/123
+DELETE /cars/123
+```
+- Một số resource URIs nên thiết kế như sau:
+```java
+http://api.example.com/cars
+http://api.example.com/cars/{id}
+http://api.example.com/users
+http://api.example.com/users/{id}
+http://api.example.com/users/{id}/cars
+```
+## 2.Phương thưc get chỉ để lấy resource
+**Dùng các phương thức như: PUT, POST và DELETE để cập nhật, thêm, xóa các resource, phương thức GET chỉ nên dùng để lấy thông tin mà không làm thay đổi resource.**
+```java
+GET /users/711?activate
+or
+GET /users/711/activate
+```
+## 3. Nhất quán trong việc đặt tên
+1. Sử dụng '/' để chỉ ra mối quan hệ thứ bậc.
+Ký tự '/' được sử dụng trong phần đường dẫn của URI để biểu thị mối quan hệ phân cấp giữa các resource. ví dụ:
+```java
+http://api.example.com/cars
+http://api.example.com/cars/{id}
+http://api.example.com/users
+http://api.example.com/users/{id}
+http://api.example.com/users/{id}/cars
+```
+2. Không sử dụng '/' trong URIs.
+Dấu '/' ở cuối đường dẫn URI không có ý nghĩa và có thể gây nhầm lẫn, tốt nhất nên bỏ chúng đi.
+```java
+http://api.example.com/device-management/managed-devices/
+http://api.example.com/device-management/managed-devices 	/*This is much better version*/
+```
+3. Sử dụng '-' để dễ đọc các URIs.
+Sử dụng ký tự '-' để giúp việc đọc hiểu các đường dẫn với tên dài dễ hơn.
+```java
+http://api.example.com/inventory-management/managed-entities/{id}/install-script-location  //More readable
+http://api.example.com/inventory-management/managedEntities/{id}/installScriptLocation  //Less readable
+
+```
+3. Không dùng '_'
+Có thể sử dụng dấu '_' để ngăn cách trong api path, nhưng có thể do lỗi font/trình duyệt mà '_' sẽ bị ẩn đi.
+Vậy chúng ta nên sử dụng '-' thay vì '_'
+```java
+http://api.example.com/inventory-management/managed-entities/{id}/install-script-location  //More readable
+http://api.example.com/inventory_management/managed_entities/{id}/install_script_location  //More error prone
+
+```
+4. Sử dụng chữ thường trong URIs.
+```java
+http://api.example.com/GET-DEVICES // Bad
+http://api.example.com/Get-Devices // Bad
+http://api.example.com/get-devices // Good
+```
+5. không sử dụng file extension.
+File extensions trông xấu và rối mắt, nếu không thực sự cần thiết chúng ta nên bỏ để giảm độ dài của URI.
+```java
+http://api.example.com/device-management/managed-devices.xml  /*Do not use it*/
+http://api.example.com/device-management/managed-devices 	/*This is correct URI*/
+
+```
+## 4. Liên kế trong resource
+Trường hợp API cần liên kết nhiều resources với nhau, vậy cần phải thiết kế liên kết để cho việc truy vấn dễ dàng hơn.
+Giả sử chúng ta có 2 resources là cars và users. Để lấy tất cả cars của một user cụ thể, ta sẽ có API sau:
+- GET /users/123/cars
+Để xem chi tiết thông tin của một car cụ thể của user: 123, ta sẽ có 2 cách như sau:
+- GET /users/123/cars/5 (Lấy thông tin của car 5 của user 123)
+- GET /cars/5 (Lấy thông tin của car 5)
+Một resource chỉ nên liên kết tối đa 2 đối tượng (object), việc liên quá nhiều dẫn đến làm cho resource rối nhầm lẫn.
+- GET /users/1/posts/5/comments/10
+Thay vào đó, chúng ta cũng có thể sử dụng bộ filter như dưới
+- GET /users/1/posts?id=5&comments=10
+## 5. Xây dụng bộ search/filtering
+Với các API truy vấn cần lấy dữ liệu gồm nhiều conditions kết hợp thì có thể thiết bộ filter như sau:
+Xây dựng sẵn bộ điều kiện truy vấn gồm các thành phần:
+- neq: không bằng
+- gt: lớn hơn
+- gte: lớn hơn bằng
+- lt: nhỏ hơn
+- lte: nhỏ hơn bằng
+- in: có trong
+- not_in: không có trong
+- like : khớp với ...
+Ví du:
+GET https://api.example.com/posts?query[field]=title&query[compare]=like&query[value]=xzy
+## 6. Versioning
+Versioning là một điều bắt buộc với tất cả resources, việc đặt version cho resource tuân thủ 2 nguyên tắc sau:
+- Bắt đầu bằng v và kết thúc bằng một số nguyên dương , tránh dùng số thập phân (dùng v1 thay vì v1.5)
+- Versioning sẽ được đặt ở vị trí đầu tiên của resource
+Ví dụ:
+- GET /v1/users/1
+## 7. Phân trang
+Để lấy các records theo trang, chúng ta truyền các tham số như: OFFSET và LIMIT để lấy ra được những dữ liệu phù hợp.
+Mặc định, để lấy danh sách dữ liệu cars, chúng ta sẽ sử dụng câu lệnh SQL dưới đây:
+```java
+SELECT * FROM Cars;
+```
+Thay vì lấy toàn bộ records, chúng ta sẽ lấy số lượng nhất định, điều này cũng giúp giảm tải cho server.
+```java
+GET /cars?page=1&limit=10
+```
+Câu lệnh SQL bên dưới nói rằng "trả về chỉ 10 records.
+```java
+SELECT * FROM Cars LIMIT 10 OFFSET 0;
+```
+8. Tìm kiếm
+Quy tắc: attribute tên là "q”(query)
+-Global search:
+```java
+GET /search?q=fluffy+fur
+```
+-Scope search:
+```java
+GET /users/123/cars?q=fluffy+fur
+```
