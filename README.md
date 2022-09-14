@@ -375,7 +375,8 @@ public class FileService {
 ==========
 # Một số quy tắc viết api
 ## 1. Dùng danh từ số nhiều
-| Resource      | Description |
+| Resource      | GET | POST | PUT | DELETE|
 | ----------- | ----------- |
-| Header      | Title       |
-| Paragraph   | Text        |
+| -      | READ       | CREATE | UPDATE | DELETE
+|/cars	|Returns a list of cars|	Create a new car|	|Bulk update of cars	|
+|/cars/711|	Returns a specific car|	Method not allowed (405)|	|Updates a specific car|	Deletes a specific car
