@@ -372,3 +372,10 @@ public class FileService {
 </body>
 </html>
 ```
+==========
+# Một số quy tắc viết api
+## 1. Dùng danh từ số nhiều
+| Resource      | Description |
+| ----------- | ----------- |
+| Header      | Title       |
+| Paragraph   | Text        |
