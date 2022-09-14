@@ -494,11 +494,12 @@ SELECT * FROM Cars LIMIT 10 OFFSET 0;
 ```
 8. Tìm kiếm
 Quy tắc: attribute tên là "q”(query)
--Global search:
+- Global search:
 ```java
 GET /search?q=fluffy+fur
 ```
--Scope search:
+- Scope search:
 ```java
 GET /users/123/cars?q=fluffy+fur
 ```
+9. 
