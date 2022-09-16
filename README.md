@@ -502,4 +502,137 @@ GET /search?q=fluffy+fur
 ```java
 GET /users/123/cars?q=fluffy+fur
 ```
-9. 
+9. Sắp xếp fields
+Cho phép sắp xếp tăng dần và giảm dần theo fiel cụ thể
+```java
+GET /cars?sort=-munufactorer,+model
+```
+- + : Sắp xếp tăng dần
+- - : Sắp xếp tăng dần
+Câu lệnh SQL tương tự:
+```java
+SELECT * FROM Cars ORDER BY manufactorer DESC, model ASC;
+```
+10. Tùy chọn fields trả về:
+Đôi lúc chúng ta chỉ cần sử dụng một số fields cụ thể trong object, nếu như toàn bộ cấc fields thì không cần thiết sẽ ảnh hướng đến performance của hệ thognos (đối với luongj record lớn), do đó chugns ta nên thêm bộ fileter để tuy biến những fields trả về.
+```java
+GET /cars?fields=id,name,mode
+```
+Câu lệnh SQL tương tự
+```java
+SELECT id, name, mode FROM Cars;
+```
+11. Xử lí, phân loại lỗi - Error Handling
+Đối với những resources hỗ trợ nhiều định dạng dữ liệu trả vềm HTTP-Header sẽ là nơi để xác định dạng đó.
+- Content-Type: khai bá request format
+```java
+Content-type: application/json;charset=UTF-8
+Content-Type: text/html; charset=UTF-8
+Content-Type: multipart/form-data; boundary=something
+```
+- Accept: Khai báo response format
+```java
+Accept: application/json*
+Accept: text/html
+Accept: image/*
+// General default
+Accept: */*
+```
+- Nguyên tắc HTTP response
+Sử dụng cặp { key:value } như sau:ư
+```java
+{
+  "id": "1",
+  "name": "Kenvin"
+}
+```
+- HTTP status code và error message
+Chuẩn HTTP cung cấp hơn 70 status codes để mô tả các giá trị trả về. Dưới đây là một số status codes phổ biến hay dùng:
+- - 200 - OK - Eyerything is working
+- - 201 - Created - A new resource has been created
+- - 304 - Not Modified - The client can use cached data
+- - 400 - Bad Request - The request was invalid or cannot be served. The exact error should be explained in the error payload. E.g. "The JSON is not valid"
+- - 401 - Unauthorized - The request requires an user authentication
+- - 403 - Forbidden -The server understood the request, but is refusing it or the access is not allowed.
+- - 404 - Not found - There is no resource behind the URI.
+- - 422 - Unprocessable Entity - Should be used if the server cannot process the enitity, e.g. if an image cannot be formatted or mandatory fields are missing in the payload.
+- - 429 - Too Many Requests - The user has sent too many requests in a given amount of time ("rate limiting").
+- - 500 - Internal Server Error - API developers should avoid this error. If an error occurs in the global catch blog, the stracktrace should be logged and not returned as response.
+
+Trong đó:
+- - The client application behaved erroneously (client error - 4xx response code)
+- - The API behaved erroneously (server error - 5xx response code)
+The client must take some additional action. (redirection - 3xx response code)
+- - The client and API worked (success - 2xx response code)
+Lỗi có thể xảy ra xuyên suốt trong quá trình thực hiện API, từ lỗi về authorization đến business logic, thấp hơn là lỗi liên quan đến database.
+Khi thiết kế API, chúng ta nên tổ chức và phân loại lỗi một cách có hệ thống và các dữ liệu trả về nên có ý nghĩa rõ ràng, điều này rất có ích cho việc xác định và debug sau này.
+
+| TRƯỜNG HỢP      | NÊN | KHÔNG NÊN |
+| :---        |    :----:   |          ---: |
+|Authentication failed because token is revoked     | token_revoked	       | invalid_auth   |
+| Value passed for name exceeded max length   | name_too_long        | invalid_name|
+| Credit card has expired   | expired_card       | invalid_card|
+| Cannot refund because a charge has already been refunded   | charge_already_refunded       | cannot_refund|
+
+Chỉ ra các danh mục lỗi xảy ra trong lúc thực hiện API, nhóm các lỗi thành các danh mục và phân thành các cấp độ như sau:
+
+| DANH MỤC LỖI      | VÍ DỤ |
+| ----------- | ----------- |
+| System-level erro      | Database connection issue,       |
+|    | Backend service connection issue        |
+|    | Fatal error        |
+| Business logic error   | Rate-limited        |
+|    | Request fulfilled, but no results were found        |
+|    | Business-related reason to deny access to information        |
+|  API request formatting error  | Required request parameters are missing        |
+|  | Combined request parameters are invalid toget    |
+|  Authorization error  | OAuth credentials are invalid for request     |
+| | Token has expired        |
+
+
+Tiếp theo, tổ chức các errors message response có dạng:
+```java
+status code, headers, error code, và error message
+```
+
+|ERROR CATEGORY|	HTTP STATUS|	HTTP HEADERS|	ERROR CODE (MACHINE-READABLE)|	ERROR MESSAGE (HUMAN-READABLE)|
+|--------------|-----------|----------------|--------------------------------|--------------------------------|
+|System-level error|	500|	--	|--	|--|
+Business logic error|	429	|Retry-After|	rate_limit_exceeded|	"You have been rate-limited. See Retry-After and try again."|
+API request formatting error|	400|	--	|missing_required_parameter	|"Your request was missing a {user} parameter."|
+Auth error|	401	| --	|invalid_request	|"Your ClientId is invalid."|
+
+Error response trả về có dạng JSON như sau:
+```java
+{
+  "errors": [
+   {
+    "userMessage": "Sorry, the requested resource does not exist",
+    "internalMessage": "No car found in the database",
+    "code": 34,
+    "more info": "http://dev.mwaysolutions.com/blog/api/v1/errors/12345"
+   }
+  ]
+}
+```
+Huặc cũng có thể tuỳ biến tuỳ vào mục đích sử dụng, ví dụ:
+```java
+{
+  "status": 400,
+  "message": "No car found in the database",
+  "code": 34,
+  "more info": "http://dev.mwaysolutions.com/blog/api/v1/errors/12345"
+}
+```
+12.  Sử dụng SSL/TLS:
+Điều này rất quan trọng, luôn luôn dùng SSL/TLS để mã hoá thông tin gửi đi và trả về của API.
+```java
+http://api.example.com/cars      // Bad
+https://api.example.com/cars     // Good
+```
+13. Cho phép override phương thức HTTP:
+```java
+Một số proxy chỉ hỗ trợ các phương thức POST và GET. Để hỗ trợ RESTful API với những hạn chế này, API cần một cách để override phương thức HTTP.
+
+Sử dụng custom HTTP Header X-HTTP-Method-Override để overrider lên Phương thức POST.
+```
