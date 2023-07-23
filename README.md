@@ -1,5 +1,25 @@
 # Restful API SpringBoot
+# Additional Hikari
+```java
+    <dependency>
+        <groupId>com.zaxxer</groupId>
+        <artifactId>HikariCP</artifactId>
+    </dependency>
 
+```
+```java
+# Database connection properties
+spring.datasource.url=jdbc:mysql://localhost:3306/mydatabase
+spring.datasource.username=db_username
+spring.datasource.password=db_password
+
+# HikariCP specific properties
+spring.datasource.hikari.connectionTimeout=30000
+spring.datasource.hikari.maximumPoolSize=10
+spring.datasource.hikari.idleTimeout=600000
+spring.datasource.hikari.poolName=MyHikariCP
+# Other HikariCP properties as needed
+```
 ## 1. WebService 
 ![alt](https://vietnix.vn/wp-content/uploads/2021/06/web-service-la-gi.webp)
 
@@ -636,3 +656,98 @@ Một số proxy chỉ hỗ trợ các phương thức POST và GET. Để hỗ 
 
 Sử dụng custom HTTP Header X-HTTP-Method-Override để overrider lên Phương thức POST.
 ```
+## 8. JPA Repository
+1. Stored Procedures
+- Entity Class
+```java
+@Entity
+public class Car {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column
+    private long id;
+
+    @Column
+    private String model;
+
+    @Column
+    private Integer year;
+
+   // standard getters and setters
+}
+```
+- Stored Procedure Creation
+A stored procedure can have parameters so that we can get different results based on the input. For example, we can create a stored procedure that takes an input parameter of integer type and returns a list of cars:
+```sql
+CREATE PROCEDURE FIND_CARS_AFTER_YEAR(IN year_in INT)
+BEGIN 
+    SELECT * FROM car WHERE year >= year_in ORDER BY year;
+END
+```
+A stored procedure can also use output parameters to return data to the calling applications. For example, we can create a stored procedure that takes an input parameter of string type and stores the query result into an output parameter:
+```sql
+CREATE PROCEDURE GET_TOTAL_CARS_BY_MODEL(IN model_in VARCHAR(50), OUT count_out INT)
+BEGIN
+    SELECT COUNT(*) into count_out from car WHERE model = model_in;
+END
+```
+- Reference Stored Procedures in Repository
+  In Spring Data JPA, repositories are where we provide database operations. We can construct a repository for the database operations on the Car entity, and reference stored procedures in this repository:
+```java
+@Repository
+public interface CarRepository extends JpaRepository<Car, Integer> {
+    // ...
+}
+```
+Next, let's add some methods to our repository that call stored procedures:
+- - Map a Stored Procedure Name Directly
+    We can define a stored procedure method using the @Procedure annotation, and map the stored procedure name directly.
+
+There are four equivalent ways to do that. For example, we can use the stored procedure name directly as the method name:
+```java
+@Procedure
+int GET_TOTAL_CARS_BY_MODEL(String model);
+```
+If we want to define a different method name, we can put the stored procedure name as the element of the @Procedure annotation:
+```java
+@Procedure("GET_TOTAL_CARS_BY_MODEL")
+int getTotalCarsByModel(String model);
+```
+- - We can also use the procedureName attribute to map the stored procedure name:
+```java
+@Procedure(procedureName = "GET_TOTAL_CARS_BY_MODEL")
+int getTotalCarsByModelProcedureName(String model);
+```
+Finally, we can use the value attribute to map the stored procedure name:
+```sql
+@Procedure(value = "GET_TOTAL_CARS_BY_MODEL")
+int getTotalCarsByModelValue(String model);
+```
+- - Reference a Stored Procedure Defined in Entity
+    We can also use the @NamedStoredProcedureQuery annotation to define a stored procedure in the entity class:
+```java
+@Entity
+@NamedStoredProcedureQuery(name = "Car.getTotalCardsbyModelEntity", 
+  procedureName = "GET_TOTAL_CARS_BY_MODEL", parameters = {
+    @StoredProcedureParameter(mode = ParameterMode.IN, name = "model_in", type = String.class),
+    @StoredProcedureParameter(mode = ParameterMode.OUT, name = "count_out", type = Integer.class)})
+public class Car {
+    // class definition
+}
+```
+Then we can reference this definition in the repository:
+```java
+@Procedure(name = "Car.getTotalCardsbyModelEntity")
+int getTotalCarsByModelEntiy(@Param("model_in") String model);
+```
+We use the name attribute to reference the stored procedure defined in the entity class. For the repository method, we use @Param to match the input parameter of the stored procedure. We also match the output parameter of the stored procedure to the return value of the repository method.
+- - 5.3. Reference a Stored Procedure With the @Query Annotation
+We can also call a stored procedure directly with the @Query annotation:
+```java
+@Query(value = "CALL FIND_CARS_AFTER_YEAR(:year_in);", nativeQuery = true)
+List<Car> findCarsAfterYear(@Param("year_in") Integer year_in);
+```
+In this method, we use a native query to call the stored procedure. We store the query in the value attribute of the annotation.
+
+Similarly, we use `@Param` to match the input parameter of the stored procedure. We also map the stored procedure output to the list of entity Car objects.
+
